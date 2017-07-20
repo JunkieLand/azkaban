@@ -110,6 +110,7 @@ azkaban.FlowExecuteDialogView = Backbone.View.extend({
     var failureActions = this.model.get("failureAction");
     var notifyFailure = this.model.get("notifyFailure");
     var flowParams = this.model.get("flowParams");
+    var userParameters = this.model.get("userParameters");
     var isRunning = this.model.get("isRunning");
     var concurrentOption = this.model.get("concurrentOption");
     var pipelineLevel = this.model.get("pipelineLevel");
@@ -161,14 +162,28 @@ azkaban.FlowExecuteDialogView = Backbone.View.extend({
       $('#queueLevel').val(queueLevel);
     }
 
-    if (flowParams) {
-      for (var key in flowParams) {
-        editTableView.handleAddRow({
-          paramkey: key,
-          paramvalue: flowParams[key]
-        });
-      }
-    }
+    var mergedParameters = _.map(userParameters, function (userParam) {
+
+      var foundFlowParamValue = _.find(flowParams, function (flowParamValue, flowParamKey) {
+        return userParam.key == flowParamKey;
+      });
+
+      if (foundFlowParamValue) userParam.value = foundFlowParamValue;
+
+      return userParam;
+    });
+
+    $('#flow-parameters-panel .editRow').remove();
+
+    _.each(mergedParameters, function (param) {
+      editTableView.handleAddRow({
+        paramkey: param.key,
+        paramvalue: param.value,
+        paramtype: param.type,
+        paramdesc: param.desc,
+        paramvalues: param.values
+      });
+    });
   },
 
   show: function(data) {
@@ -327,20 +342,15 @@ azkaban.EditTableView = Backbone.View.extend({
   },
 
   handleAddRow: function(data) {
-    var name = "";
-    if (data.paramkey) {
-      name = data.paramkey;
-    }
-
-    var value = "";
-    if (data.paramvalue) {
-      value = data.paramvalue;
-    }
+    var name = data.paramkey || "",
+        value = (data.paramvalue != null) ? data.paramvalue : "",
+        type = data.paramtype || "string",
+        desc = data.paramdesc || "",
+        values = data.paramvalues || [];
 
     var tr = document.createElement("tr");
     var tdName = document.createElement("td");
     $(tdName).addClass('property-key');
-    var tdValue = document.createElement("td");
 
     var remove = document.createElement("div");
     $(remove).addClass("pull-right").addClass('remove-btn');
@@ -360,13 +370,25 @@ azkaban.EditTableView = Backbone.View.extend({
     $(tdName).append(nameData);
     $(tdName).addClass("editable");
 
+    var tdValue = document.createElement("td");
     $(tdValue).append(valueData);
     $(tdValue).append(remove);
     $(tdValue).addClass("editable").addClass('value');
 
+    $(tdValue).attr("data-type", type);
+    if (type == "array") $(tdValue).attr("data-values", JSON.stringify(values));
+
+    var descData = document.createElement("span");
+    $(descData).addClass("spanValue");
+    $(descData).text(desc);
+
+    var tdDesc = document.createElement("td");
+    $(tdDesc).append(descData);
+
     $(tr).addClass("editRow");
     $(tr).append(tdName);
     $(tr).append(tdValue);
+    $(tr).append(tdDesc);
 
     $(tr).insertBefore(".addRow");
     return tr;
@@ -375,28 +397,57 @@ azkaban.EditTableView = Backbone.View.extend({
   handleEditColumn: function(evt) {
     var curTarget = evt.currentTarget;
 
-    var text = $(curTarget).children(".spanValue").text();
-    $(curTarget).empty();
+    var text = $(curTarget).children(".spanValue").text(),
+        type = $(curTarget).attr("data-type") || "string",
+        input = null;
 
-    var input = document.createElement("input");
-    $(input).attr("type", "text");
-    $(input).addClass('form-control').addClass('input-sm');
-    $(input).css("width", "100%");
-    $(input).val(text);
-    $(curTarget).addClass("editing");
-    $(curTarget).append(input);
-    $(input).focus();
+    if (type == "string" || type == "array") {
+      if (type == "string") {
+        input = document.createElement("input");
+        $(input).attr("type", "text");
+      } else if (type == "array") {
+        input = document.createElement("select");
 
-    var obj = this;
-    $(input).focusout(function(evt) {
-      obj.closeEditingTarget(evt);
-    });
-
-    $(input).keypress(function(evt) {
-      if (evt.which == 13) {
-        obj.closeEditingTarget(evt);
+        var values = JSON.parse($(curTarget).attr("data-values"));
+        _.chain(values)
+          .map(function (value) {
+            var element = document.createElement("option");
+            $(element).attr("value", value).text(value);
+            return element;
+          })
+          .each(function (element) {
+            $(input).append(element);
+          });
       }
-    });
+
+      $(curTarget).empty();
+
+      $(input).addClass('form-control').addClass('input-sm');
+      $(input).css("width", "100%");
+      $(input).val(text);
+
+      $(curTarget).addClass("editing");
+      $(curTarget).append(input);
+      $(input).focus();
+
+      var obj = this;
+      $(input).focusout(function(evt) {
+        obj.closeEditingTarget(evt);
+      });
+
+      $(input).keypress(function(evt) {
+        if (evt.which == 13) {
+          obj.closeEditingTarget(evt);
+        }
+      });
+
+      $(input).click(function (e) {
+        e.stopPropagation();
+      })
+    } else if (type == "boolean") {
+      var elem = $(curTarget).find("span").first();
+      if (text == "true") elem.text("false"); else elem.text("true");
+    }
   },
 
   handleRemoveColumn: function(evt) {

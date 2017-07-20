@@ -162,6 +162,7 @@
                           <tr>
                             <th class="property-key">Name</th>
                             <th>Value</th>
+                            <th>Description</th>
                           </tr>
                         </thead>
                         <tbody>

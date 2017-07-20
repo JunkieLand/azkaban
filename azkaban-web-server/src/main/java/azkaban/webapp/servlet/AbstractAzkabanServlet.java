@@ -22,6 +22,7 @@ import azkaban.server.AzkabanServer;
 import azkaban.server.HttpRequestUtils;
 import azkaban.server.session.Session;
 import azkaban.utils.JSONUtils;
+import azkaban.utils.Pair;
 import azkaban.utils.Props;
 import azkaban.utils.WebUtils;
 import azkaban.webapp.AzkabanWebServer;
@@ -364,4 +365,5 @@ public abstract class AbstractAzkabanServlet extends HttpServlet {
     resp.setContentType(JSON_MIME_TYPE);
     JSONUtils.toJSON(obj, resp.getOutputStream(), true);
   }
+
 }

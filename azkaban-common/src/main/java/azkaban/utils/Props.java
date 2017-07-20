@@ -835,4 +835,14 @@ public class Props {
   public void setSource(final String source) {
     this.source = source;
   }
+
+  public Map<String, String> toMap() {
+    Map<String, String> map = new HashMap<>();
+
+    for (String key : getKeySet()) {
+      map.put(key, get(key));
+    }
+
+    return map;
+  }
 }

@@ -29,12 +29,11 @@ import azkaban.user.Permission.Type;
 import azkaban.user.User;
 import azkaban.utils.Props;
 import azkaban.utils.PropsUtils;
+import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import com.google.inject.Inject;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -339,6 +338,19 @@ public class ProjectManager {
     return this.projectLoader.fetchProjectProperty(project, source);
   }
 
+  public Props getUserProperties(final Project project, String flowName) throws ProjectManagerException {
+    Optional<String> userPropertiesSource = FluentIterable
+            .from(project.getFlows())
+            .transform(Flow::getAllFlowProps)
+            .transformAndConcat(allFlowProps -> allFlowProps.keySet())
+            .filter(prop -> prop.endsWith(flowName + ".properties"))
+            .first();
+
+    return userPropertiesSource
+      .transform(source -> this.getProperties(project, source))
+      .orNull();
+  }
+
   public Props getJobOverrideProperty(final Project project, final String jobName)
       throws ProjectManagerException {
     return this.projectLoader.fetchProjectProperty(project, jobName + ".jor");
@@ -457,11 +469,11 @@ public class ProjectManager {
     this.projectLoader.updateFlow(project, flow.getVersion(), flow);
   }
 
-
   public void postProjectEvent(final Project project, final EventType type, final String user,
       final String message) {
     this.projectLoader.postEvent(project, type, user, message);
   }
+
 
   public boolean loadProjectWhiteList() {
     if (this.props.containsKey(ProjectWhitelist.XML_FILE_PARAM)) {
@@ -470,4 +482,5 @@ public class ProjectManager {
     }
     return false;
   }
+
 }

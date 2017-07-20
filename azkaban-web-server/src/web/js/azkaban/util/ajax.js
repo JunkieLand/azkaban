@@ -68,6 +68,58 @@ function fetchFlowInfo(model, projectName, flowId, execId) {
     fetchData.execid = execId;
   }
 
+  var parseUserParameters = function(data) {
+    var keyRegEx = /^(\d+)\.key *$/,
+        valueRegEx = /^(\d+)\.value *$/,
+        typeRegEx = /^(\d+)\.type *$/,
+        descRegEx = /^(\d+)\.desc *$/,
+        valuesRegEx = /^(\d+)\.values\.(\d+) *$/,
+        res = [];
+
+    for (var key in data) {
+      var keyParsed = keyRegEx.exec(key),
+          valueParsed = valueRegEx.exec(key),
+          typeParsed = typeRegEx.exec(key),
+          descParsed = descRegEx.exec(key),
+          valuesParsed = valuesRegEx.exec(key);
+
+      if (keyParsed != null) {
+        var i = keyParsed[1], currentParam = res[i] || {};
+        currentParam.key = data[key];
+        res[i] = currentParam;
+      }
+      if (valueParsed != null) {
+        var i = valueParsed[1], currentParam = res[i] || {};
+        currentParam.value = data[key];
+        res[i] = currentParam;
+      }
+      if (typeParsed != null) {
+        var i = typeParsed[1], currentParam = res[i] || {};
+        currentParam.type = data[key];
+        res[i] = currentParam;
+      }
+      if (descParsed != null) {
+        var i = descParsed[1], currentParam = res[i] || {};
+        currentParam.desc = data[key];
+        res[i] = currentParam;
+      }
+      if (valuesParsed != null) {
+        var i = valuesParsed[1], valuesIndex = valuesParsed[2], currentParam = res[i] || {};
+        var currentValues = currentParam.values || [];
+        currentValues[valuesIndex] = data[key];
+        currentParam.values = currentValues;
+        res[i] = currentParam;
+      }
+    }
+
+    for (var i in res) {
+      if (res[i].type == "boolean") res[i].value = res[i].value == "true";
+      if (res[i].type == "array") res[i].values = _.filter(res[i].values, function (item) { return item != null; });
+    }
+
+    return _.filter(res, function (item) { return item != null; });
+  };
+
   var executeURL = contextURL + "/executor";
   var successHandler = function(data) {
     if (data.error) {
@@ -83,6 +135,7 @@ function fetchFlowInfo(model, projectName, flowId, execId) {
           "last": data.notifyFailureLast
         },
         "flowParams": data.flowParam,
+        "userParameters": parseUserParameters(data.userParameters),
         "isRunning": data.running,
         "nodeStatus": data.nodeStatus,
         "concurrentOption": data.concurrentOptions,

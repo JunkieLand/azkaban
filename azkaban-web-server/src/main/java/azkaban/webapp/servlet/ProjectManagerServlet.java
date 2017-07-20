@@ -1517,6 +1517,7 @@ public class ProjectManagerServlet extends LoginAbstractAzkabanServlet {
       }
 
       page.add("project", project);
+
       flow = project.getFlow(flowName);
       if (flow == null) {
         page.add("errorMsg", "Flow " + flowName + " not found.");

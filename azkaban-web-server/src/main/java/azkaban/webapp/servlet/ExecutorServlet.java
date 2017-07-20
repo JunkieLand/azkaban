@@ -17,6 +17,7 @@
 package azkaban.webapp.servlet;
 
 import static azkaban.ServiceProvider.SERVICE_PROVIDER;
+import static com.google.common.collect.Lists.newArrayList;
 
 import azkaban.Constants;
 import azkaban.executor.ConnectorParams;
@@ -404,6 +405,7 @@ public class ExecutorServlet extends LoginAbstractAzkabanServlet {
     page.add("projectId", project.getId());
     page.add("projectName", project.getName());
     page.add("flowid", flow.getFlowId());
+    page.add("userParameters", newArrayList());
 
     page.render();
   }
@@ -617,6 +619,7 @@ public class ExecutorServlet extends LoginAbstractAzkabanServlet {
 
     ret.put("successEmails", flow.getSuccessEmails());
     ret.put("failureEmails", flow.getFailureEmails());
+    ret.put("userParameters", this.projectManager.getUserProperties(project, flowId).toMap());
 
     Schedule sflow = null;
     try {
@@ -658,6 +661,7 @@ public class ExecutorServlet extends LoginAbstractAzkabanServlet {
     ret.put("successEmails", options.getSuccessEmails());
     ret.put("failureEmails", options.getFailureEmails());
     ret.put("flowParam", options.getFlowParameters());
+    ret.put("userParameters", this.projectManager.getUserProperties(project, exflow.getFlowId()).toMap());
 
     final FailureAction action = options.getFailureAction();
     String failureAction = null;
